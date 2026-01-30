@@ -335,6 +335,8 @@ if not st.session_state.logged_in:
 else:
     user = st.session_state.user
     profile = st.session_state.users[user]
+    if "home_country" not in profile:
+        profile["home_country"] = "India"
     page = st.sidebar.radio("Menu", ["Home", "Add Purchase", "Dashboard", "Eco Game", "Settings"])
 
     # ---------- HOME ----------
