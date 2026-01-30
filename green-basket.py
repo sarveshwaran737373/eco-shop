@@ -13,6 +13,10 @@ st.set_page_config(page_title="GreenBasket", layout="wide", page_icon="🌱")
 
 USER_FILE = "users.json"
 PRODUCT_FILE = "products.json"
+# Load mascot images
+LION_IMG = Image.open("images/Lion.png")
+HAPPY_LION_IMG = Image.open("images/Happy_Lion.png")
+SAD_LION_IMG = Image.open("images/Sad_Lion.png")
 
 TRANSPORT_FACTORS = {
     "✈️ Air Freight": 0.500,
@@ -24,7 +28,6 @@ TRANSPORT_FACTORS = {
 COUNTRY_DISTANCES = {
     "Local (Within Country)": 150
 }
-
 COUNTRY_COORDS = {
     "India": (20.5937, 78.9629),
     "Pakistan": (30.3753, 69.3451),
@@ -260,42 +263,30 @@ def calculate_distance_km(lat1, lon1, lat2, lon2):
 # ---------------- BADGE SYSTEM ----------------
 def calculate_badge(purchases):
     if not purchases:
-        return "🌱 Green Beginner", "Start making eco-friendly choices to earn badges!"
-
+        return "🌱 Green Beginner", "Start making eco-friendly choices!"
     total_impact = sum(p.get("impact", 0) for p in purchases)
     eco_count = sum(1 for p in purchases if p.get("clovers_earned", 0) >= 10)
     eco_ratio = eco_count / len(purchases)
-
     if eco_ratio > 0.7 and total_impact < 400:
-        return "🏆 Eco Champion", "Outstanding! You consistently make low-impact choices!"
+        return "🏆 Eco Champion", "Outstanding eco choices!"
     elif eco_ratio > 0.5:
-        return "🌿 Eco Saver", "Great job choosing sustainable options!"
+        return "🌿 Eco Saver", "Great sustainable shopping!"
     elif eco_ratio > 0.3:
-        return "🌎 Conscious Shopper", "You're on the path to greener shopping!"
+        return "🌎 Conscious Shopper", "You're improving!"
     else:
-        return "🌍 Getting Started", "Keep improving your eco-friendly habits!"
+        return "🌍 Getting Started", "Keep going green!"
 
 def draw_badge_image(badge_name):
     img = Image.new("RGBA", (220, 220), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
-
-    colors = {
-        "🌱 Green Beginner": "#A5D6A7",
-        "🌍 Getting Started": "#81C784",
-        "🌎 Conscious Shopper": "#66BB6A",
-        "🌿 Eco Saver": "#43A047",
-        "🏆 Eco Champion": "#2E7D32"
-    }
-
-    color = colors.get(badge_name, "#4CAF50")
-    draw.ellipse((10, 10, 210, 210), fill=color, outline="darkgreen", width=5)
-    draw.ellipse((80, 70, 140, 150), fill="white")
-    draw.polygon([(110, 50), (125, 20), (140, 50)], fill="white")
-
-    short_text = badge_name.split(" ", 1)[1] if " " in badge_name else badge_name
-    draw.text((110, 170), short_text[:12], fill="white", anchor="mm")
-
+    draw.ellipse((10, 10, 210, 210), fill="#4CAF50", outline="darkgreen", width=5)
+    draw.text((110, 110), badge_name.split(" ",1)[1][:12], fill="white", anchor="mm")
     return img
+
+# ---------------- MASCOT IMAGES ----------------
+LION_IMG = Image.open("images/Lion.png")
+HAPPY_LION_IMG = Image.open("images/Happy_Lion.png")
+SAD_LION_IMG = Image.open("images/Sad_Lion.png")
 
 # ---------------- SESSION STATE ----------------
 if "users" not in st.session_state:
@@ -327,7 +318,7 @@ if not st.session_state.logged_in:
         np = st.text_input("New Password", type="password")
         if st.button("Register"):
             if nu and nu not in st.session_state.users:
-                st.session_state.users[nu] = {"password": np, "purchases": []}
+                st.session_state.users[nu] = {"password": np, "purchases": [], "home_country": "India"}
                 save_users()
                 st.success("Account created!")
 
@@ -335,11 +326,12 @@ if not st.session_state.logged_in:
 else:
     user = st.session_state.user
     profile = st.session_state.users[user]
+
     if "home_country" not in profile:
         profile["home_country"] = "India"
+
     page = st.sidebar.radio("Menu", ["Home", "Add Purchase", "Dashboard", "Eco Game", "Settings"])
 
-    # ---------- HOME ----------
     if page == "Home":
         st.title(f"Welcome, {user} 👋")
         st.info(f"💡 {random.choice(ECO_TIPS)}")
@@ -353,40 +345,44 @@ else:
         st.success(badge)
         st.caption(badge_msg)
 
-    # ---------- ADD PURCHASE ----------
+        # ---------------- Mascot display ----------------
+        if badge in ["🏆 Eco Champion", "🌿 Eco Saver"]:
+            st.image(HAPPY_LION_IMG, caption="🐾 Happy Lion says: Keep up the great work!", width=200)
+        elif badge in ["🌎 Conscious Shopper", "🌍 Getting Started"]:
+            st.image(SAD_LION_IMG, caption="🐾 Lion thinks: Let's get greener!", width=200)
+        else:
+            st.image(LION_IMG, caption="🐾 Meet your Lion mascot!", width=200)
+
     elif page == "Add Purchase":
         st.header("🛒 Log New Purchase")
-
         categories = list(PRODUCTS.keys())
         cat = st.selectbox("Category", categories)
         cat_data = PRODUCTS.get(cat, {})
         items = cat_data.get("items", [])
         brands_info = cat_data.get("brands", {})
-
         std_brands = brands_info.get("Standard", [])
         eco_brands = brands_info.get("Eco-Friendly", []) + brands_info.get("EcoFriendly", [])
         all_brands_list = std_brands + eco_brands
-
         col1, col2 = st.columns(2)
         with col1:
             prod = st.selectbox("Product", items)
             brand = st.selectbox("Brand", all_brands_list)
             price = st.number_input("Price", min_value=0.0, step=1.0)
-
         with col2:
             origin_options = ["Local (Within Country)"] + list(COUNTRY_COORDS.keys())
             origin = st.selectbox("Origin Country", origin_options)
             mode = st.selectbox("Transport Mode", list(TRANSPORT_FACTORS.keys()))
             is_eco = brand in eco_brands
-
-            if brand in std_brands and eco_brands:
-                st.warning(f"🌱 Consider switching to **{random.choice(eco_brands)}**!")
-
             if st.button("Add to Basket"):
-                dist = COUNTRY_DISTANCES[origin]
+                home_country = profile["home_country"]
+                home_lat, home_lon = COUNTRY_COORDS[home_country]
+                if origin == "Local (Within Country)":
+                    dist = 150
+                else:
+                    origin_lat, origin_lon = COUNTRY_COORDS[origin]
+                    dist = calculate_distance_km(home_lat, home_lon, origin_lat, origin_lon)
                 impact_calc = price * (0.4 if is_eco else 1.2) + (dist * TRANSPORT_FACTORS[mode])
                 earned_clovers = 15 if is_eco else 5
-
                 profile["purchases"].append({
                     "product": prod,
                     "brand": brand,
@@ -395,38 +391,23 @@ else:
                     "clovers_earned": earned_clovers,
                     "date": datetime.now().strftime("%Y-%m-%d %H:%M")
                 })
-
                 save_users()
-                badge, badge_msg = calculate_badge(profile["purchases"])
-
-                st.balloons()
-                st.image(draw_badge_image(badge), width=150)
-                st.success(f"🎉 Badge Earned: {badge}")
-                st.caption(badge_msg)
+                st.success("Purchase added successfully!")
                 st.rerun()
 
-    # ---------- DASHBOARD ----------
     elif page == "Dashboard":
         st.header("📊 Sustainability Insights")
         history = profile.get("purchases", [])
-
         if history:
             df = pd.DataFrame(history)
             st.metric("Total CO₂ Footprint", f"{sum(df['impact']):.2f} kg")
             st.line_chart(df.set_index("date")["impact"])
             st.dataframe(df)
 
-        badge, badge_msg = calculate_badge(history)
-        st.markdown("### 🎖 Current Badge")
-        st.image(draw_badge_image(badge), width=140)
-        st.info(f"{badge} — {badge_msg}")
-
-    # ---------- ECO GAME ----------
     elif page == "Eco Game":
         st.header("🤖 Robo Runner")
         clovers = sum(p.get("clovers_earned", 0) for p in profile.get("purchases", []))
         st.subheader(f"🍀 Total Clovers: {clovers}")
-
         if os.path.exists("game.html"):
             with open("game.html", "r", encoding="utf-8") as f:
                 html_code = f.read()
@@ -435,14 +416,22 @@ else:
         else:
             st.error("File 'game.html' not found.")
 
-    # ---------- SETTINGS ----------
     elif page == "Settings":
         st.header("⚙️ Settings")
+        st.subheader("🌍 Home Country")
+        country_list = list(COUNTRY_COORDS.keys())
+        current_home = profile.get("home_country", "India")
+        default_index = country_list.index(current_home) if current_home in country_list else 0
+        new_home = st.selectbox("Select your home country", country_list, index=default_index)
+        if st.button("Save Home Country"):
+            profile["home_country"] = new_home
+            save_users()
+            st.success(f"Home country updated to {new_home}")
+            st.rerun()
         new_color = st.color_picker("Pick Background Color", st.session_state.bg_color)
         if st.button("Apply Theme"):
             st.session_state.bg_color = new_color
             st.rerun()
-
         if st.button("Logout"):
             st.session_state.logged_in = False
             st.rerun()
