@@ -13,10 +13,15 @@ st.set_page_config(page_title="GreenBasket", layout="wide", page_icon="🌱")
 
 USER_FILE = "users.json"
 PRODUCT_FILE = "products.json"
-# Load mascot images
-LION_IMG = Image.open("images/Lion.png")
-HAPPY_LION_IMG = Image.open("images/Happy_Lion.png")
-SAD_LION_IMG = Image.open("images/Sad_Lion.png")
+def load_image_safe(path):
+    try:
+        return Image.open(path)
+    except FileNotFoundError:
+        return None
+
+LION_IMG = load_image_safe("images/Lion.png")
+HAPPY_LION_IMG = load_image_safe("images/Happy_Lion.png")
+SAD_LION_IMG = load_image_safe("images/Sad_Lion.png")
 
 TRANSPORT_FACTORS = {
     "✈️ Air Freight": 0.500,
