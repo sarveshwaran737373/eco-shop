@@ -283,11 +283,6 @@ def draw_badge_image(badge_name):
     draw.text((110, 110), badge_name.split(" ",1)[1][:12], fill="white", anchor="mm")
     return img
 
-# ---------------- MASCOT IMAGES ----------------
-LION_IMG = Image.open("images/Lion.png")
-HAPPY_LION_IMG = Image.open("images/Happy_Lion.png")
-SAD_LION_IMG = Image.open("images/Sad_Lion.png")
-
 # ---------------- SESSION STATE ----------------
 if "users" not in st.session_state:
     st.session_state.users = safe_load_json(USER_FILE, {})
@@ -327,9 +322,6 @@ else:
     user = st.session_state.user
     profile = st.session_state.users[user]
 
-    if "home_country" not in profile:
-        profile["home_country"] = "India"
-
     page = st.sidebar.radio("Menu", ["Home", "Add Purchase", "Dashboard", "Eco Game", "Settings"])
 
     if page == "Home":
@@ -345,13 +337,26 @@ else:
         st.success(badge)
         st.caption(badge_msg)
 
-        # ---------------- Mascot display ----------------
-        if badge in ["🏆 Eco Champion", "🌿 Eco Saver"]:
-            st.image(HAPPY_LION_IMG, caption="🐾 Happy Lion says: Keep up the great work!", width=200)
-        elif badge in ["🌎 Conscious Shopper", "🌍 Getting Started"]:
-            st.image(SAD_LION_IMG, caption="🐾 Lion thinks: Let's get greener!", width=200)
+        # ---------------- MASCOT DISPLAY ----------------
+        st.subheader("🦁 Your Eco Mascot")
+
+        if badge == "🏆 Eco Champion":
+            if HAPPY_LION_IMG:
+                st.image(HAPPY_LION_IMG, width=200)
+            else:
+                st.markdown("🦁✨ **Lion is SUPER happy! You're an Eco Champion!**")
+
+        elif badge in ["🌿 Eco Saver", "🌎 Conscious Shopper"]:
+            if LION_IMG:
+                st.image(LION_IMG, width=200)
+            else:
+                st.markdown("🦁🙂 **Lion says: Great progress, keep going green!**")
+
         else:
-            st.image(LION_IMG, caption="🐾 Meet your Lion mascot!", width=200)
+            if SAD_LION_IMG:
+                st.image(SAD_LION_IMG, width=200)
+            else:
+                st.markdown("🦁💭 **Lion says: Try choosing eco-friendly options!**")
 
     elif page == "Add Purchase":
         st.header("🛒 Log New Purchase")
@@ -363,6 +368,7 @@ else:
         std_brands = brands_info.get("Standard", [])
         eco_brands = brands_info.get("Eco-Friendly", []) + brands_info.get("EcoFriendly", [])
         all_brands_list = std_brands + eco_brands
+
         col1, col2 = st.columns(2)
         with col1:
             prod = st.selectbox("Product", items)
@@ -373,16 +379,18 @@ else:
             origin = st.selectbox("Origin Country", origin_options)
             mode = st.selectbox("Transport Mode", list(TRANSPORT_FACTORS.keys()))
             is_eco = brand in eco_brands
+
             if st.button("Add to Basket"):
-                home_country = profile["home_country"]
-                home_lat, home_lon = COUNTRY_COORDS[home_country]
+                home_lat, home_lon = COUNTRY_COORDS.get(profile.get("home_country", "India"))
                 if origin == "Local (Within Country)":
                     dist = 150
                 else:
                     origin_lat, origin_lon = COUNTRY_COORDS[origin]
                     dist = calculate_distance_km(home_lat, home_lon, origin_lat, origin_lon)
+
                 impact_calc = price * (0.4 if is_eco else 1.2) + (dist * TRANSPORT_FACTORS[mode])
                 earned_clovers = 15 if is_eco else 5
+
                 profile["purchases"].append({
                     "product": prod,
                     "brand": brand,
@@ -418,20 +426,20 @@ else:
 
     elif page == "Settings":
         st.header("⚙️ Settings")
-        st.subheader("🌍 Home Country")
         country_list = list(COUNTRY_COORDS.keys())
         current_home = profile.get("home_country", "India")
-        default_index = country_list.index(current_home) if current_home in country_list else 0
-        new_home = st.selectbox("Select your home country", country_list, index=default_index)
+        new_home = st.selectbox("Select your home country", country_list, index=country_list.index(current_home))
         if st.button("Save Home Country"):
             profile["home_country"] = new_home
             save_users()
-            st.success(f"Home country updated to {new_home}")
+            st.success("Home country updated!")
             st.rerun()
+
         new_color = st.color_picker("Pick Background Color", st.session_state.bg_color)
         if st.button("Apply Theme"):
             st.session_state.bg_color = new_color
             st.rerun()
+
         if st.button("Logout"):
             st.session_state.logged_in = False
-            st.rerun()
+            st.rerun()0-
